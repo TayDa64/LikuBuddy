@@ -63,8 +63,18 @@ Liku isn't just a menu; he has needs!
     ```
 
 3.  **Launch**:
+    You can launch LikuBuddy in two ways:
+    
+    **Option A: Via Gemini CLI Slash Command**
     ```bash
     /liku
+    ```
+
+    **Option B: Directly from Terminal**
+    ```bash
+    npm start
+    # OR if installed globally
+    liku
     ```
 
 ## 🛠️ Tech Stack
