@@ -7,8 +7,22 @@ const geminiDir = path.join(homeDir, '.gemini');
 const commandsDir = path.join(geminiDir, 'commands');
 const sourceToml = path.join(process.cwd(), 'commands', 'liku.toml');
 const destToml = path.join(commandsDir, 'liku.toml');
+const distDir = path.join(process.cwd(), 'dist');
+const distIndexJs = path.join(distDir, 'index.js');
 
 try {
+  // Check if dist directory exists
+  if (!fs.existsSync(distDir)) {
+    console.error('❌ dist/ directory not found. Please run "npm run build" first.');
+    process.exit(1);
+  }
+
+  // Check if dist/index.js exists
+  if (!fs.existsSync(distIndexJs)) {
+    console.error('❌ dist/index.js not found. Please run "npm run build" first.');
+    process.exit(1);
+  }
+
   // Ensure .gemini/commands exists
   if (!fs.existsSync(commandsDir)) {
     fs.mkdirSync(commandsDir, { recursive: true });

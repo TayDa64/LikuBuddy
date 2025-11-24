@@ -79,13 +79,14 @@ Liku isn't just a menu; he has needs!
 
 ## 🚀 Installation
 
-1.  **Clone & Build**:
+1.  **Clone & Install**:
     ```bash
     git clone https://github.com/TayDa64/LikuBuddy.git
     cd LikuBuddy
     npm install
-    npm run build
     ```
+    
+    > 💡 **Note**: `npm install` will automatically build the project and install the `/liku` command for Gemini CLI.
 
 2.  **Set up Gemini API Key** (for game generation):
     ```bash
@@ -95,25 +96,28 @@ Liku isn't just a menu; he has needs!
     ```
     Get your free API key from: https://ai.google.dev/
 
-3.  **Install into Gemini CLI**:
-    ```bash
-    gemini extensions install .
-    ```
-
-4.  **Launch**:
-    You can launch LikuBuddy in two ways:
+3.  **Launch**:
+    You can launch LikuBuddy in multiple ways:
     
-    **Option A: Via Gemini CLI Slash Command**
+    **Option A: Via Gemini CLI Slash Command** (Recommended)
     ```bash
     /liku
     ```
-
+    
     **Option B: Directly from Terminal**
     ```bash
     npm start
     # OR if installed globally
     liku
     ```
+
+4.  **Verify Installation**:
+    After installation, you should see all features including:
+    - 🛠️ Build a Game (AI-Powered)
+    - 💻 LikuOS Stats
+    - 🎮 Let's Play (Snake, Tic-Tac-Toe, Dino Run)
+    - 🌟 Community Games
+    - And more!
 
 ## 🎯 Quick Start
 
