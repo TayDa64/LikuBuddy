@@ -284,8 +284,9 @@ const GameHub = () => {
 				)}
 			</Box>
 
-			<Box marginTop={1}>
-				<Text dimColor>Use ↑/↓ to select, Enter to act{isGameMenu ? ', Esc to back' : ''} | Press 'm' for mini mode</Text>
+			<Box marginTop={1} flexDirection="column">
+				<Text dimColor>Use ↑/↓ to select, Enter to act{isGameMenu ? ', Esc to back' : ''}</Text>
+				<Text dimColor>Press 'm' to toggle mini dashboard mode</Text>
 			</Box>
 		</Box>
 	);
