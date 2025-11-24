@@ -201,6 +201,58 @@ const MyGame = ({ onExit, difficulty }: GameProps) => {
 export default MyGame;
 ```
 
+## 🔧 Troubleshooting
+
+### `/liku` command not recognized
+If the `/liku` command isn't working:
+
+1. **Verify installation completed successfully**:
+   ```bash
+   ls -la ~/.gemini/commands/liku.toml
+   ```
+   This file should exist and contain the path to your LikuBuddy installation.
+
+2. **Check that the build completed**:
+   ```bash
+   ls -la dist/index.js
+   ```
+   If this file doesn't exist, run:
+   ```bash
+   npm run build
+   ```
+
+3. **Reinstall the command**:
+   ```bash
+   node scripts/install-command.js
+   ```
+
+### Missing menu items (Build a Game, LikuOS Stats)
+If you don't see all menu items after installation:
+
+1. **Ensure you have the latest version**:
+   ```bash
+   git pull
+   npm install
+   ```
+
+2. **Verify the UI files are compiled**:
+   ```bash
+   ls -la dist/ui/BuilderUI.js dist/ui/LikuOS.js
+   ```
+
+3. **Try running directly**:
+   ```bash
+   npm start
+   ```
+   You should see all 8 menu items including "🛠️ Build a Game (AI-Powered)" and "💻 LikuOS Stats".
+
+### Database errors
+If you encounter database errors:
+```bash
+rm -rf ~/.gemini-liku/snake.db
+npm start  # Will recreate database with default values
+```
+
 ## 📝 License
 
 MIT License - Feel free to use, modify, and distribute!
