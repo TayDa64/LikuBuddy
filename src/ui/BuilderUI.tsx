@@ -25,6 +25,11 @@ const BuilderUI: React.FC<BuilderUIProps> = ({ onExit }) => {
     if (key.escape) {
       onExit();
     }
+    
+    // Toggle quick generation mode with 'q' key (only on idea input screen)
+    if (input === 'q' && step === 'idea') {
+      setUseQuickGen(prev => !prev);
+    }
   });
 
   const handleIdeaSubmit = async () => {
