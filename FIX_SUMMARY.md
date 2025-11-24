@@ -254,3 +254,22 @@ All users can now:
 - See all menu items including "🛠️ Build a Game (AI-Powered)" and "💻 LikuOS Stats"
 - Use the `/liku` command in gemini-cli
 - Access all features immediately after installation
+
+## Additional Fix: Command File Format
+
+### Issue
+After the initial fix, users reported a "Skipping invalid command file" warning from gemini-cli.
+
+### Root Cause
+The gemini-cli expects a `prompt` field in the TOML command file, even if empty.
+
+### Solution
+Added `prompt = ""` to the `commands/liku.toml` template file. The generated file now includes:
+
+```toml
+description = "Launch LikuBuddy Game Hub"
+command = ["node", "/path/to/LikuBuddy/dist/index.js"]
+prompt = ""
+```
+
+This ensures compatibility with gemini-cli's command file validation.
