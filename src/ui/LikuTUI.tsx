@@ -1,18 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text, useInput, useApp, useStdin } from 'ink';
 import Snake from './games/Snake.js';
 import TicTacToe from './games/TicTacToe.js';
 import DinoRun from './games/DinoRun.js';
 import SettingsMenu from './SettingsMenu.js';
 import { db, PlayerStats, UserSettings } from '../services/DatabaseService.js';
 
-const GameHub = () => {
+interface GameHubProps {
+	ai?: boolean;
+}
+
+const GameHub: React.FC<GameHubProps> = ({ ai = false }) => {
+	const { exit } = useApp();
+	const { stdin, setRawMode } = useStdin();
+
 	const [selectedGame, setSelectedGame] = useState<number>(0);
 	const [selectedGameMenuIndex, setSelectedGameMenuIndex] = useState<number>(0);
 	const [activeGame, setActiveGame] = useState<string | null>(null);
 	const [stats, setStats] = useState<PlayerStats | null>(null);
 	const [settings, setSettings] = useState<UserSettings | null>(null);
 	const [message, setMessage] = useState<string | null>(null);
+	const [actionQueue, setActionQueue] = useState<string[]>([]);
 
 	const refreshData = () => {
 		db.getStats().then(setStats).catch(console.error);
@@ -21,7 +29,7 @@ const GameHub = () => {
 
 	useEffect(() => {
 		refreshData();
-	}, [activeGame]); // Refresh when returning from a game
+	}, [activeGame]);
 
 	const mainMenuItems = [
 		{ id: 'games_menu', name: '🎮 Let\'s Play' },
@@ -38,11 +46,28 @@ const GameHub = () => {
 		{ id: 'back', name: '🔙 Back to Main Menu' }
 	];
 
+	const performAction = (command: string) => {
+		const isGameMenu = activeGame === 'games_menu';
+		const items = isGameMenu ? gameMenuItems : mainMenuItems;
+		const setSelection = isGameMenu ? setSelectedGameMenuIndex : setSelectedGame;
+		const currentSelection = isGameMenu ? selectedGameMenuIndex : selectedGame;
+
+		if (command === 'up') {
+			setSelection(prev => Math.max(0, prev - 1));
+		} else if (command === 'down') {
+			setSelection(prev => Math.min(items.length - 1, prev + 1));
+		} else if (command === 'enter') {
+			handleAction(items[currentSelection].id);
+		} else if (command === 'exit_app') {
+			exit();
+		}
+	};
+
 	const handleAction = async (id: string) => {
 		if (!stats) return;
 
 		if (id === 'exit') {
-			process.exit(0);
+			exit();
 		} else if (id === 'settings') {
 			setActiveGame('settings');
 		} else if (id === 'games_menu') {
@@ -95,27 +120,45 @@ const GameHub = () => {
 		}
 	};
 
+	// For human players
 	useInput((input, key) => {
+		if (ai) return;
+
 		if (activeGame && activeGame !== 'games_menu') return;
 
-		const isGameMenu = activeGame === 'games_menu';
-		const items = isGameMenu ? gameMenuItems : mainMenuItems;
-		const setSelection = isGameMenu ? setSelectedGameMenuIndex : setSelectedGame;
-		const currentSelection = isGameMenu ? selectedGameMenuIndex : selectedGame;
+		if (key.upArrow) performAction('up');
+		if (key.downArrow) performAction('down');
+		if (key.return) performAction('enter');
+		if (key.escape && activeGame === 'games_menu') setActiveGame(null);
+	}, { isActive: !ai });
 
-		if (key.upArrow) {
-			setSelection(prev => Math.max(0, prev - 1));
+	// For AI players (via --ai flag)
+	useEffect(() => {
+		if (ai) {
+			setRawMode(false);
+			const handleData = (data: Buffer) => {
+				const command = data.toString().trim();
+				// Add all commands from input to the queue
+				setActionQueue(prev => [...prev, ...command.split('\n')]);
+			};
+			stdin.on('data', handleData);
+			return () => {
+				stdin.off('data', handleData);
+			};
 		}
-		if (key.downArrow) {
-			setSelection(prev => Math.min(items.length - 1, prev + 1));
+	}, [ai]);
+
+	// Process the action queue one by one
+	useEffect(() => {
+		if (actionQueue.length > 0) {
+			const [currentAction, ...rest] = actionQueue;
+			performAction(currentAction);
+			// Process next action only after the state has updated
+			// by setting the rest of the queue.
+			setActionQueue(rest);
 		}
-		if (key.return) {
-			handleAction(items[currentSelection].id);
-		}
-		if (key.escape && isGameMenu) {
-			setActiveGame(null);
-		}
-	});
+	}, [actionQueue]);
+
 
 	if (activeGame === 'snake') {
 		return <Snake onExit={() => setActiveGame('games_menu')} difficulty={settings?.snakeDifficulty} />;
