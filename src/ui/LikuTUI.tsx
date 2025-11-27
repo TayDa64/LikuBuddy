@@ -201,6 +201,16 @@ const GameHub: React.FC<GameHubProps> = ({ ai = false, actionQueue, setActionQue
 			return;
 		}
 
+		// Shortcuts for Feed and Rest
+		if (input === 'f' && !activeGame) {
+			handleAction('feed');
+			return;
+		}
+		if (input === 'r' && !activeGame) {
+			handleAction('rest');
+			return;
+		}
+
 		if (key.upArrow) performAction('up');
 		if (key.downArrow) performAction('down');
 		if (key.return) performAction('enter');

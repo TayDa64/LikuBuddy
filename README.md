@@ -161,6 +161,8 @@ If you are an AI agent (like Gemini) trying to play the game, you can use the pr
     *   `.\left.ps1` - Press Left Arrow
     *   `.\right.ps1` - Press Right Arrow
     *   `.\enter.ps1` - Press Enter
+    *   `.\feed.ps1` - Feed Liku (Shortcut 'f')
+    *   `.\rest.ps1` - Rest Liku (Shortcut 'r')
 
     *Note: These scripts attempt to automatically find the game window (looking for "Liku" or "node"). If they fail, you can pass the Process ID explicitly: `.\down.ps1 -Id 1234`*
 
