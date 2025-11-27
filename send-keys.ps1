@@ -7,44 +7,31 @@ param (
 )
 
 $wshell = New-Object -ComObject WScript.Shell
+$targetTitle = "LikuBuddy Game Window"
 
-if ($Id) {
-    # Try to activate by PID
-    # Note: AppActivate with PID is robust but sometimes needs the exact ID
+# Strategy 1: Activate by specific Window Title (Most Reliable for CLI)
+$success = $wshell.AppActivate($targetTitle)
+
+# Strategy 2: If that fails, and we have a PID, try PID
+if (-not $success -and $Id) {
     $success = $wshell.AppActivate($Id)
-    
-    if (-not $success) {
-        # Fallback: Try to find window title from PID
-        $proc = Get-Process -Id $Id -ErrorAction SilentlyContinue
-        if ($proc -and $proc.MainWindowTitle) {
-            $success = $wshell.AppActivate($proc.MainWindowTitle)
-        }
-    }
-    
-    if (-not $success) {
-        Write-Error "Could not activate window for PID $Id. Ensure the game is running and has a window."
-        exit 1
-    }
-} else {
-    # Fallback: Try to find a likely window by title
-    # This is less reliable than PID
-    $success = $wshell.AppActivate("Liku")
-    if (-not $success) {
-        $success = $wshell.AppActivate("node")
-    }
-    
-    if (-not $success) {
-        Write-Error "Could not find 'Liku' or 'node' window. Please provide -Id."
-        exit 1
-    }
+}
+
+# Strategy 3: Fallback to generic titles
+if (-not $success) {
+    if ($wshell.AppActivate("Liku")) { $success = $true }
+    elseif ($wshell.AppActivate("node")) { $success = $true }
+}
+
+if (-not $success) {
+    Write-Error "Could not activate game window. Ensure 'LikuBuddy Game Window' is running."
+    exit 1
 }
 
 # Small delay to ensure focus settles
 Start-Sleep -Milliseconds 100
 
 # Send the keys
-# WScript.Shell.SendKeys syntax:
-# {ENTER}, {UP}, {DOWN}, {LEFT}, {RIGHT}, {ESC}, etc.
 try {
     $wshell.SendKeys($Key)
 } catch {

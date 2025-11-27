@@ -15,15 +15,16 @@ The file contains:
 5.  **CONTROLS**: Valid keys for the current screen.
 
 ## 🎮 Action: How to Move
-To interact with the game, you must execute PowerShell scripts that send keystrokes to the specific Process ID (PID) found in the state file.
+To interact with the game, you must execute PowerShell scripts.
+**The scripts now automatically target the window named "LikuBuddy Game Window".**
+You do not strictly need the PID anymore, but it is still provided in the state file for verification.
 
 ### The Master Script: `send-keys.ps1`
-Use this script for all interactions. You **MUST** provide the `-Id` (PID) to ensure you control the correct window.
-
 **Syntax:**
 ```powershell
-.\send-keys.ps1 -Id <PID_FROM_STATE_FILE> -Key "<KEY_CODE>"
+.\send-keys.ps1 -Key "<KEY_CODE>"
 ```
+*(The `-Id` parameter is optional now)*
 
 **Common Key Codes:**
 - **Movement**: `{UP}`, `{DOWN}`, `{LEFT}`, `{RIGHT}`
@@ -31,27 +32,27 @@ Use this script for all interactions. You **MUST** provide the `-Id` (PID) to en
 - **Typing**: Just the letter, e.g., `q` to quit.
 
 ### Shortcut Scripts (Wrappers)
-For convenience, these scripts exist (but `send-keys.ps1` is the engine):
-- `.\up.ps1 <PID>`
-- `.\down.ps1 <PID>`
-- `.\left.ps1 <PID>`
-- `.\right.ps1 <PID>`
-- `.\enter.ps1 <PID>`
-- `.\feed.ps1 <PID>` (Shortcut for feeding Liku)
-- `.\rest.ps1 <PID>` (Shortcut for resting Liku)
+For convenience, these scripts exist:
+- `.\up.ps1`
+- `.\down.ps1`
+- `.\left.ps1`
+- `.\right.ps1`
+- `.\enter.ps1`
+- `.\feed.ps1`
+- `.\rest.ps1`
 
 ## 🧠 Gameplay Strategy
 
 ### 1. The Loop
 1.  **Read** `likubuddy-state.txt`.
-2.  **Parse** the PID and Visual State.
+2.  **Parse** the Visual State.
 3.  **Decide** on the next move.
-4.  **Execute** `.\send-keys.ps1 -Id <PID> -Key <MOVE>`.
+4.  **Execute** `.\send-keys.ps1 -Key <MOVE>`.
 5.  **Wait** a moment (the game takes time to update).
 6.  **Repeat**.
 
 ### 2. Troubleshooting
-- **"Failed to activate window"**: Ensure you are using the correct PID from the text file. The PID changes every time the game restarts.
+- **"Could not activate game window"**: Ensure the game is actually running (`npm start`).
 - **Game Over**: If the status says "GAME OVER", press `{ESC}` or `q` to return to the menu.
 - **Stuck**: If you are stuck, try pressing `{ESC}` multiple times to back out to the main menu.
 

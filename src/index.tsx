@@ -35,6 +35,9 @@ const App: React.FC<AppProps> = ({ ai = false }) => {
 	const [actionQueue, setActionQueue] = useState<string[]>([]);
 
 	useEffect(() => {
+		// Set the terminal window title for AI visibility
+		process.stdout.write('\x1b]0;LikuBuddy Game Window\x07');
+
 		if (ai) {
 			setRawMode(false);
 			const handleData = (data: Buffer) => {
