@@ -1,3 +1,11 @@
+param (
+    [Parameter(Mandatory=$false)]
+    [string]$Key,
+
+    [Parameter(Mandatory=$false)]
+    [int]$Id
+)
+
 function Send-KeystrokesToProcess {
     param (
         [Parameter(Mandatory=$true)]
@@ -49,5 +57,33 @@ function Send-KeystrokesToProcess {
     }
     catch {
         Write-Error "Failed to send keystrokes: $($_.Exception.Message)"
+    }
+}
+
+# Main script execution
+
+if (-not $Key) {
+    Write-Host "Usage: .\send-keys.ps1 -Key '{DOWN}' [-Id <PID>]"
+    Write-Host "Supported Keys: {UP}, {DOWN}, {LEFT}, {RIGHT}, {ENTER}, {ESC}, etc."
+    exit
+}
+
+if ($Id) {
+    Send-KeystrokesToProcess -ProcessId $Id -Keystrokes $Key
+} else {
+    # Try to find the Liku/Node process
+    # 1. Look for process with title containing "Liku" but exclude VS Code
+    $proc = Get-Process | Where-Object { $_.MainWindowTitle -like "*Liku*" -and $_.MainWindowTitle -notlike "*Visual Studio Code*" -and $_.MainWindowTitle -notlike "*VS Code*" } | Select-Object -First 1
+    
+    # 2. If not found, look for "node" with a window title
+    if (-not $proc) {
+        $proc = Get-Process node -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -ne "" } | Sort-Object StartTime -Descending | Select-Object -First 1
+    }
+
+    if ($proc) {
+        Write-Host "Targeting process: $($proc.Id) ($($proc.MainWindowTitle))"
+        Send-KeystrokesToProcess -ProcessId $proc.Id -Keystrokes $Key
+    } else {
+        Write-Error "Could not find a suitable game process (Liku or Node). Please specify -Id."
     }
 }

@@ -147,6 +147,23 @@ Liku isn't just a menu; he has needs!
 - Monitoring Liku's stats while working on other tasks
 - Reducing screen clutter when you don't need the full menu
 
+## 🤖 AI Agent Interaction
+
+If you are an AI agent (like Gemini) trying to play the game, you can use the provided PowerShell scripts to send keyboard commands to the running game window.
+
+1.  **Start the game** in a separate terminal window:
+    ```bash
+    npm start
+    ```
+2.  **Use the helper scripts** to control the game:
+    *   `.\down.ps1` - Press Down Arrow
+    *   `.\up.ps1` - Press Up Arrow
+    *   `.\left.ps1` - Press Left Arrow
+    *   `.\right.ps1` - Press Right Arrow
+    *   `.\enter.ps1` - Press Enter
+
+    *Note: These scripts attempt to automatically find the game window (looking for "Liku" or "node"). If they fail, you can pass the Process ID explicitly: `.\down.ps1 -Id 1234`*
+
 ## 🛠️ Tech Stack
 
 *   **Runtime**: Node.js
