@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { db, UserSettings } from '../services/DatabaseService.js';
+import { logGameState } from '../core/GameStateLogger.js';
 
 interface SettingsMenuProps {
     onExit: () => void;
@@ -30,6 +31,22 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({ onExit, onSettingsChanged }
         },
         { id: 'back', label: 'Back to Main Menu' }
     ];
+
+    // AI State Logging
+    useEffect(() => {
+        if (!settings) return;
+        
+        const status = `Menu: Settings | Selected: ${menuItems[selectedItem].label}`;
+        let visualState = "Settings Menu:\n";
+        
+        menuItems.forEach((item, index) => {
+            const cursor = index === selectedItem ? "> " : "  ";
+            const value = item.value ? ` [${item.value}]` : "";
+            visualState += `${cursor}${item.label}${value}\n`;
+        });
+        
+        logGameState("Settings Menu", status, visualState);
+    }, [settings, selectedItem]);
 
     const handleToggle = async (direction: 1 | -1) => {
         if (!settings) return;

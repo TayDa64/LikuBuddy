@@ -12,6 +12,7 @@ GAME STRUCTURE REQUIREMENTS:
 3. Games should use Ink components: Box, Text, useInput, useApp
 4. Games can access the database through the global db service
 5. Use ASCII art for graphics (no external graphics libraries)
+6. Games MUST implement state logging for AI visibility using the provided helper.
 
 GAME MANIFEST (optional export):
 export const GameManifest = {
@@ -26,6 +27,7 @@ EXAMPLE GAME STRUCTURE:
 \`\`\`typescript
 import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
+import { logGameState } from '../../core/GameStateLogger.js'; // REQUIRED IMPORT
 
 interface GameProps {
   onExit: () => void;
@@ -47,6 +49,14 @@ const MyGame = ({ onExit, difficulty = 'medium' }: GameProps) => {
     // Game loop logic
   }, []);
 
+  // REQUIRED: AI State Logging
+  useEffect(() => {
+    const status = \`Score: \${score} | Game Over: \${gameOver}\`;
+    // Create a visual representation of the game state (ASCII grid, etc.)
+    const visualState = "ASCII Representation of Game Board Here"; 
+    logGameState("My Game Name", status, visualState);
+  }, [score, gameOver]);
+
   return (
     <Box flexDirection="column" borderStyle="round" borderColor="cyan">
       <Text bold>My Game</Text>
@@ -62,7 +72,7 @@ export default MyGame;
 IMPORTANT:
 - Output ONLY valid TypeScript code in a single code block
 - Do not include explanations outside the code block
-- Ensure all imports are from 'react' and 'ink'
+- Ensure all imports are from 'react', 'ink', and local services
 - Use proper TypeScript types
 - Keep games simple and focused on gameplay
 `;
@@ -257,6 +267,7 @@ export class ElicitationAgent {
 import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { db } from '../../services/DatabaseService.js';
+import { logGameState } from '../../core/GameStateLogger.js';
 
 interface HangmanProps {
     onExit: () => void;
@@ -299,7 +310,7 @@ const HANGMAN_PICS = [
   +---+
   |   |
   O   |
- /|\  |
+ /|\\  |
       |
       |
 =========\`,
@@ -307,7 +318,7 @@ const HANGMAN_PICS = [
   +---+
   |   |
   O   |
- /|\  |
+ /|\\  |
  /    |
       |
 =========\`,
@@ -315,8 +326,8 @@ const HANGMAN_PICS = [
   +---+
   |   |
   O   |
- /|\  |
- / \  |
+ /|\\  |
+ / \\  |
       |
 =========\`
 ];
@@ -384,6 +395,19 @@ const Hangman: React.FC<HangmanProps> = ({ onExit }) => {
             });
         }
     }, [guessedLetters, wrongGuesses, word]);
+
+    // AI State Logging
+    useEffect(() => {
+        const displayedWord = word
+            .split('')
+            .map(letter => (guessedLetters.includes(letter) ? letter : '_'))
+            .join(' ');
+            
+        const status = \`State: \${gameState} | Wrong Guesses: \${wrongGuesses}/6\`;
+        const visualState = \`Word: \${displayedWord}\\nGuessed: \${guessedLetters.join(',')}\\n\${HANGMAN_PICS[wrongGuesses]}\`;
+        
+        logGameState("Playing Hangman", status, visualState);
+    }, [word, guessedLetters, wrongGuesses, gameState]);
 
     const displayedWord = word
         .split('')

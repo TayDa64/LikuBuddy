@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 import { ElicitationAgent } from '../builder/ElicitationAgent.js';
 import { gameLoader } from '../core/GameLoader.js';
+import { logGameState } from '../core/GameStateLogger.js';
 
 interface BuilderUIProps {
   onExit: () => void;
@@ -20,6 +21,26 @@ const BuilderUI: React.FC<BuilderUIProps> = ({ onExit }) => {
   const [gameInfo, setGameInfo] = useState<{ id: string; name: string } | null>(null);
   const [useQuickGen, setUseQuickGen] = useState(false);
   const [inputValue, setInputValue] = useState('');
+
+  // AI State Logging
+  useEffect(() => {
+    const status = `Builder Step: ${step} | Quick Mode: ${useQuickGen}`;
+    let visualState = `Current Step: ${step}\n`;
+    
+    if (step === 'idea') {
+        visualState += `Input: ${inputValue}\nPrompt: Describe the game you want to create`;
+    } else if (step === 'eliciting') {
+        visualState += `Questions:\n${questions}\nInput: ${inputValue}`;
+    } else if (step === 'generating' || step === 'installing') {
+        visualState += `Message: ${message}`;
+    } else if (step === 'complete') {
+        visualState += `Success! Game Created: ${gameInfo?.name} (${gameInfo?.id})`;
+    } else if (step === 'error') {
+        visualState += `Error: ${error}`;
+    }
+    
+    logGameState("Game Builder", status, visualState);
+  }, [step, inputValue, questions, message, error, gameInfo, useQuickGen]);
 
   useInput((input, key) => {
     if (key.escape) {

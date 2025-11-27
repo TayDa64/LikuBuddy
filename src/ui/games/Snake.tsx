@@ -3,6 +3,7 @@ import { Box, Text, useInput } from 'ink';
 import fs from 'fs';
 import path from 'path';
 import { db } from '../../services/DatabaseService.js';
+import { logGameState } from '../../core/GameStateLogger.js';
 
 const FIELD_SIZE = 20;
 const INITIAL_SNAKE = [
@@ -251,6 +252,34 @@ const Snake = ({ onExit, difficulty = 'medium' }: { onExit: () => void, difficul
 		const gameLoop = setInterval(moveSnake, speed);
 		return () => clearInterval(gameLoop);
 	}, [direction, food, gameOver, generateFood, speed, generateNanobananaImage, saveProgress, score, level, xp]);
+
+	// --- AI State Logging ---
+	useEffect(() => {
+		let status = `Score: ${score} | Level: ${level} | XP: ${xp}/100`;
+		if (gameOver) status += " | GAME OVER";
+
+		// Render grid for AI
+		let visualState = "";
+		for (let y = 0; y < FIELD_SIZE; y++) {
+			let row = "";
+			for (let x = 0; x < FIELD_SIZE; x++) {
+				const isHead = snake[0].x === x && snake[0].y === y;
+				const isBody = snake.some((s, i) => i > 0 && s.x === x && s.y === y);
+				const isFood = food.x === x && food.y === y;
+
+				if (isHead) row += "H";
+				else if (isBody) row += "o";
+				else if (isFood) row += "F";
+				else row += ".";
+			}
+			visualState += row + "\n";
+		}
+		visualState += `\nSnake Head: (${snake[0].x}, ${snake[0].y})`;
+		visualState += `\nFood: (${food.x}, ${food.y}) [${food.type}]`;
+
+		logGameState("Playing Snake", status, visualState);
+	}, [snake, food, score, level, xp, gameOver]);
+	// ------------------------
 
 	// Render the grid
 	const renderGrid = () => {

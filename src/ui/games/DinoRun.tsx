@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { db } from '../../services/DatabaseService.js';
+import { logGameState } from '../../core/GameStateLogger.js';
 
 const GAME_WIDTH = 60;
 const GAME_HEIGHT = 12;
@@ -290,6 +291,48 @@ const DinoRun = ({ onExit, difficulty = 'medium' }: { onExit: () => void, diffic
 
 		return () => clearInterval(timer);
 	}, [gameState, difficulty]);
+
+	// --- AI State Logging ---
+	useEffect(() => {
+		let status = `Score: ${score} | State: ${gameState}`;
+		if (message) status += ` | Message: ${message}`;
+
+		// Render grid for AI (Simplified ASCII)
+		let visualState = "";
+		// Render from top to bottom (visual Y)
+		for (let y = GAME_HEIGHT - 1; y >= 0; y--) {
+			let row = "";
+			for (let x = 0; x < GAME_WIDTH; x++) {
+				// Dino
+				const visualDinoY = Math.round(dinoY);
+				const isDinoHere = (x === DINO_X) && (y === visualDinoY);
+				
+				// Obstacles
+				const obstacle = obstacles.find(obs => Math.round(obs.x) === x && obs.y === y);
+
+				if (isDinoHere) row += "D";
+				else if (obstacle) row += "X";
+				else if (y === 0) row += "_";
+				else row += ".";
+			}
+			visualState += row + "\n";
+		}
+		
+		// Add specific details for AI decision making
+		const nextObstacle = obstacles
+			.filter(o => o.x > DINO_X)
+			.sort((a, b) => a.x - b.x)[0];
+			
+		if (nextObstacle) {
+			visualState += `\nNext Obstacle: Dist=${Math.round(nextObstacle.x - DINO_X)}, Type=${nextObstacle.type}, Y=${nextObstacle.y}`;
+		} else {
+			visualState += `\nNext Obstacle: None`;
+		}
+		visualState += `\nDino Y: ${Math.round(dinoY)} | Velocity: ${velocity.toFixed(1)}`;
+
+		logGameState("Playing DinoRun", status, visualState);
+	}, [dinoY, obstacles, score, gameState, message, velocity]);
+	// ------------------------
 
 	// Rendering Logic
 	const renderScene = () => {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { gameLoader } from '../core/GameLoader.js';
+import { logGameState } from '../core/GameStateLogger.js';
 
 interface CommunityGamesMenuProps {
   onExit: () => void;
@@ -17,6 +18,29 @@ const CommunityGamesMenu: React.FC<CommunityGamesMenuProps> = ({ onExit, onSelec
   useEffect(() => {
     loadGames();
   }, []);
+
+  // AI State Logging
+  useEffect(() => {
+    const status = `Menu: Community Games | Selected Index: ${selectedIndex}`;
+    let visualState = "Community Games List:\n";
+    
+    if (games.length === 0) {
+        visualState += "(No games found)\n";
+    } else {
+        games.forEach((game, index) => {
+            const cursor = index === selectedIndex ? "> " : "  ";
+            visualState += `${cursor}${game.name}\n`;
+            if (index === selectedIndex) {
+                visualState += `   ${game.description}\n`;
+            }
+        });
+    }
+    
+    const backCursor = selectedIndex === games.length ? "> " : "  ";
+    visualState += `${backCursor}Back to Main Menu`;
+    
+    logGameState("Community Games Menu", status, visualState);
+  }, [games, selectedIndex]);
 
   const loadGames = async () => {
     try {
