@@ -79,6 +79,13 @@ Liku isn't just a menu; he has needs!
 
 ## 🚀 Installation
 
+### Prerequisites
+- **Node.js** 20.x or higher
+- **npm** 10.x or higher
+- (Optional) Gemini API key for AI game generation
+
+### Quick Start
+
 1.  **Clone & Build**:
     ```bash
     git clone https://github.com/TayDa64/LikuBuddy.git
@@ -88,11 +95,32 @@ Liku isn't just a menu; he has needs!
     ```
 
 2.  **Set up Gemini API Key** (for game generation):
-    ```bash
-    export GEMINI_API_KEY="your-api-key-here"
-    # OR
-    export GOOGLE_AI_API_KEY="your-api-key-here"
+
+    <details>
+    <summary>🪟 Windows (PowerShell)</summary>
+    
+    ```powershell
+    # Temporary (current session)
+    $env:GEMINI_API_KEY="your-api-key-here"
+    
+    # Permanent (user environment)
+    [System.Environment]::SetEnvironmentVariable("GEMINI_API_KEY", "your-key", "User")
     ```
+    </details>
+
+    <details>
+    <summary>🍎 macOS / 🐧 Linux (Bash/Zsh)</summary>
+    
+    ```bash
+    # Temporary (current session)
+    export GEMINI_API_KEY="your-api-key-here"
+    
+    # Permanent (add to ~/.bashrc or ~/.zshrc)
+    echo 'export GEMINI_API_KEY="your-key"' >> ~/.bashrc
+    source ~/.bashrc
+    ```
+    </details>
+
     Get your free API key from: https://ai.google.dev/
 
 3.  **Install into Gemini CLI**:
@@ -149,28 +177,97 @@ Liku isn't just a menu; he has needs!
 
 ## 🤖 AI Agent Interaction
 
-If you are an AI agent (like Gemini) trying to play the game, you can use the provided PowerShell scripts to send keyboard commands to the running game window.
+LikuBuddy supports AI agents (like Gemini, Claude, or GPT) controlling the game programmatically. We provide **cross-platform** tools that work on Windows, macOS, and Linux.
 
-1.  **Start the game** in a separate terminal window:
+### Cross-Platform Agent CLI (Recommended)
+
+The unified agent CLI works on all platforms:
+
+```bash
+# Send a key to the game
+npm run agent key up
+npm run agent key enter
+npm run agent key f        # Feed shortcut
+
+# Read game state as JSON
+npm run agent read
+
+# Get AI-suggested next action
+npm run agent decide
+
+# Show system info
+npm run agent info
+
+# Auto-play mode (experimental)
+npm run agent auto 10
+```
+
+### Platform-Specific Scripts
+
+<details>
+<summary>🪟 Windows (PowerShell)</summary>
+
+Use the provided PowerShell scripts:
+*   `.\up.ps1` / `.\down.ps1` / `.\left.ps1` / `.\right.ps1` - Arrow keys
+*   `.\enter.ps1` - Enter key
+*   `.\feed.ps1` - Feed Liku (shortcut 'f')
+*   `.\rest.ps1` - Rest Liku (shortcut 'r')
+
+```powershell
+# Example: Navigate menu and select
+.\down.ps1
+.\down.ps1
+.\enter.ps1
+```
+
+*Note: These scripts auto-detect the game window. Pass `-Id 1234` to specify process ID.*
+</details>
+
+<details>
+<summary>🍎 macOS / 🐧 Linux (Bash)</summary>
+
+Use the bash script (macOS uses AppleScript, Linux requires xdotool):
+
+```bash
+# Make executable (first time only)
+chmod +x scripts/agent-keys.sh
+
+# Send keys
+./scripts/agent-keys.sh up
+./scripts/agent-keys.sh enter
+./scripts/agent-keys.sh f
+```
+
+**Linux Setup**: Install xdotool first:
+```bash
+# Debian/Ubuntu
+sudo apt install xdotool
+
+# Fedora
+sudo dnf install xdotool
+
+# Arch
+sudo pacman -S xdotool
+```
+</details>
+
+### Reading Game State
+
+1.  **Start the game** in a terminal:
     ```bash
     npm start
     ```
-2.  **Use the helper scripts** to control the game:
-    *   `.\down.ps1` - Press Down Arrow
-    *   `.\up.ps1` - Press Up Arrow
-    *   `.\left.ps1` - Press Left Arrow
-    *   `.\right.ps1` - Press Right Arrow
-    *   `.\enter.ps1` - Press Enter
-    *   `.\feed.ps1` - Feed Liku (Shortcut 'f')
-    *   `.\rest.ps1` - Rest Liku (Shortcut 'r')
 
-    *Note: These scripts attempt to automatically find the game window (looking for "Liku" or "node"). If they fail, you can pass the Process ID explicitly: `.\down.ps1 -Id 1234`*
+2.  **Read the state file** (`likubuddy-state.txt`):
+    ```bash
+    # Using agent CLI (returns JSON)
+    npm run agent read
+    
+    # Or read file directly
+    cat likubuddy-state.txt
+    ```
 
-3.  **Read the Game State**:
-    The game writes its current state (screen name, stats, menu items) to a file named `likubuddy-state.txt` in the root directory.
-    **ALWAYS read this file** before deciding which key to press. It tells you what is currently selected and if Liku needs attention (e.g., feeding or resting).
-
-    Example `likubuddy-state.txt` content:
+3.  **State file format**:
     ```text
     CURRENT SCREEN: Main Menu
     STATS: Level: 11, XP: 106, Hunger: 90%, Energy: 15%, Happiness: 80%

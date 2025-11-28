@@ -38,17 +38,12 @@ describe('ElicitationAgent', () => {
   });
 
   describe('quickGenerate', () => {
-    it('should return hardcoded Hangman game for hangman request', async () => {
+    it('should throw informative error for hangman request (built-in game)', async () => {
       agent = new ElicitationAgent();
       
-      const result = await agent.quickGenerate('hangman game');
-      
-      expect(result.gameId).toBe('hangman');
-      expect(result.name).toBe('Hangman');
-      expect(result.description).toBe('Guess the word before you run out of attempts!');
-      expect(result.code).toContain('Hangman');
-      expect(result.code).toContain('useInput');
-      expect(result.code).toContain('onExit');
+      await expect(agent.quickGenerate('hangman game')).rejects.toThrow(
+        'Hangman is already available as a built-in game'
+      );
     });
 
     it('should throw error for non-hangman without API key', async () => {

@@ -4,8 +4,30 @@ import meow from 'meow';
 import GameHub from './ui/LikuTUI.js';
 
 // ============================================================
+// ANSI Escape Codes for Terminal Control
+// Cross-platform compatible sequences
+// ============================================================
+const ANSI = {
+  // Screen control
+  CLEAR_SCREEN: '\x1b[2J',           // Clear entire screen
+  CURSOR_HOME: '\x1b[H',             // Move cursor to top-left
+  CURSOR_HIDE: '\x1b[?25l',          // Hide cursor
+  CURSOR_SHOW: '\x1b[?25h',          // Show cursor
+  
+  // Alternate screen buffer (fullscreen mode - prevents scroll artifacts)
+  ALT_BUFFER_ON: '\x1b[?1049h',      // Switch to alternate buffer
+  ALT_BUFFER_OFF: '\x1b[?1049l',     // Return to main buffer
+  
+  // Scroll region (prevent scroll bleed)
+  SCROLL_REGION_FULL: '\x1b[r',      // Reset scroll region to full screen
+  
+  // Terminal title
+  SET_TITLE: (title: string) => `\x1b]0;${title}\x07`,
+};
+
+// ============================================================
 // Stream Guard - Prevents console.log from corrupting TUI
-// Inspired by Gemini CLI's stdout protection (#13600)
+// Inspired by Gemini CLI's stdout protection
 // ============================================================
 const originalConsoleLog = console.log;
 const originalConsoleError = console.error;
@@ -14,29 +36,24 @@ const originalConsoleWarn = console.warn;
 let logsBuffer: string[] = [];
 
 const guardStreams = () => {
-  // Redirect console methods to buffer (prevents mid-render corruption)
   console.log = (...args) => {
     logsBuffer.push(args.map(String).join(' '));
   };
   console.warn = (...args) => {
     logsBuffer.push(`[WARN] ${args.map(String).join(' ')}`);
   };
-  // Keep console.error for debugging but buffer it
   console.error = (...args) => {
     logsBuffer.push(`[ERROR] ${args.map(String).join(' ')}`);
-    // Also write to stderr for debugging
     originalConsoleError.apply(console, args);
   };
 };
 
-// Restore streams (call on exit if needed)
 export const restoreStreams = () => {
   console.log = originalConsoleLog;
   console.error = originalConsoleError;
   console.warn = originalConsoleWarn;
 };
 
-// Get buffered logs (useful for debugging)
 export const getBufferedLogs = () => [...logsBuffer];
 
 const cli = meow(`
@@ -61,6 +78,43 @@ const cli = meow(`
 	}
 });
 
+// ============================================================
+// Fullscreen Mode Initialization
+// Uses alternate screen buffer to prevent scroll artifacts
+// This is the pattern used by vim, htop, and other TUI apps
+// ============================================================
+const initFullscreen = () => {
+  // Switch to alternate buffer (prevents scroll history pollution)
+  process.stdout.write(ANSI.ALT_BUFFER_ON);
+  // Hide cursor (prevents the blinking cursor artifact)
+  process.stdout.write(ANSI.CURSOR_HIDE);
+  // Clear and position cursor
+  process.stdout.write(ANSI.CLEAR_SCREEN + ANSI.CURSOR_HOME);
+  // Reset scroll region
+  process.stdout.write(ANSI.SCROLL_REGION_FULL);
+  // Set title
+  process.stdout.write(ANSI.SET_TITLE('LikuBuddy Game Hub'));
+};
+
+const exitFullscreen = () => {
+  // Show cursor and return to main buffer
+  process.stdout.write(ANSI.CURSOR_SHOW);
+  process.stdout.write(ANSI.ALT_BUFFER_OFF);
+};
+
+// Initialize fullscreen mode BEFORE React renders
+initFullscreen();
+
+// Handle exit cleanup
+process.on('exit', exitFullscreen);
+process.on('SIGINT', () => { exitFullscreen(); process.exit(0); });
+process.on('SIGTERM', () => { exitFullscreen(); process.exit(0); });
+process.on('uncaughtException', (err) => { 
+  exitFullscreen(); 
+  console.error('Uncaught exception:', err);
+  process.exit(1); 
+});
+
 interface AppProps {
 	ai?: boolean;
 }
@@ -68,21 +122,11 @@ interface AppProps {
 const App: React.FC<AppProps> = ({ ai = false }) => {
 	const { exit } = useApp();
 	const { stdin, setRawMode } = useStdin();
-	const { stdout } = useStdout();
 	const [actionQueue, setActionQueue] = useState<string[]>([]);
 
 	useEffect(() => {
-		// Guard streams before any rendering (prevents console.log corruption)
+		// Guard streams (prevents console.log from corrupting TUI)
 		guardStreams();
-
-		// Clear terminal and set title BEFORE first render
-		// This prevents "top-row bleed" artifacts
-		if (stdout) {
-			// Clear screen and move to top-left
-			stdout.write('\x1b[2J\x1b[H');
-			// Set terminal title
-			stdout.write('\x1b]0;LikuBuddy Game Hub\x07');
-		}
 
 		if (ai) {
 			setRawMode(false);
@@ -90,6 +134,7 @@ const App: React.FC<AppProps> = ({ ai = false }) => {
 				const command = data.toString().trim();
 				if (command === 'exit_app') {
 					restoreStreams();
+					exitFullscreen();
 					exit();
 				}
 				setActionQueue(prev => [...prev, ...command.split('\n')]);
@@ -104,9 +149,32 @@ const App: React.FC<AppProps> = ({ ai = false }) => {
 		return () => {
 			restoreStreams();
 		};
-	}, [ai, exit, stdin, setRawMode, stdout]);
+	}, [ai, exit, stdin, setRawMode]);
 
 	return <GameHub ai={ai} actionQueue={actionQueue} setActionQueue={setActionQueue} />;
 };
 
-render(<App ai={cli.flags.ai} />);
+// ============================================================
+// Render with options to prevent artifacts
+// - patchConsole: false - We handle console patching ourselves
+// Note: Cursor is hidden via ANSI codes in initFullscreen()
+// ============================================================
+const inkInstance = render(<App ai={cli.flags.ai} />, {
+	patchConsole: false,  // We handle console patching ourselves
+});
+
+// ============================================================
+// Persistent Cursor Suppression
+// Ink may show the cursor after each render cycle, causing
+// a vertical line artifact on the right side of the screen.
+// We use a periodic interval to keep the cursor hidden.
+// ============================================================
+const cursorSuppressor = setInterval(() => {
+	process.stdout.write(ANSI.CURSOR_HIDE);
+}, 100);  // Re-hide cursor every 100ms
+
+// Clean up on exit
+inkInstance.waitUntilExit().then(() => {
+	clearInterval(cursorSuppressor);
+	exitFullscreen();
+});

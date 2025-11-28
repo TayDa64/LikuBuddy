@@ -26,12 +26,19 @@ const GameHub: React.FC<GameHubProps> = ({ ai = false, actionQueue, setActionQue
 	const { stdout } = useStdout();
 
 	// Get terminal dimensions for responsive layout (must be before any early returns)
+	// Use 90% of terminal width to prevent edge artifacts (Gemini CLI pattern)
 	const terminalWidth = useMemo(() => {
-		return stdout?.columns || 120;
+		const cols = stdout?.columns || 120;
+		// Use 90% of width with min/max constraints to prevent border issues
+		return Math.max(60, Math.min(Math.floor(cols * 0.95), 140));
 	}, [stdout?.columns]);
-	
-	// Clamp width to prevent overflow (Gemini CLI pattern)
-	const maxWidth = Math.min(terminalWidth - 2, 130);
+
+	// Helper to clear screen between major transitions (prevents artifacts)
+	const clearScreen = () => {
+		if (stdout) {
+			stdout.write('\x1b[2J\x1b[H');
+		}
+	};
 
 	const [selectedGame, setSelectedGame] = useState<number>(0);
 	const [selectedGameMenuIndex, setSelectedGameMenuIndex] = useState<number>(0);
@@ -142,21 +149,30 @@ const GameHub: React.FC<GameHubProps> = ({ ai = false, actionQueue, setActionQue
 	const handleAction = async (id: string) => {
 		if (!stats) return;
 
+		// Clear screen before major transitions to prevent artifacts
+		const clearBeforeTransition = () => clearScreen();
+
 		if (id === 'exit') {
 			exit();
 		} else if (id === 'settings') {
+			clearBeforeTransition();
 			setActiveGame('settings');
 		} else if (id === 'builder') {
+			clearBeforeTransition();
 			setActiveGame('builder');
 		} else if (id === 'community') {
+			clearBeforeTransition();
 			setActiveGame('community');
 		} else if (id === 'liku_os') {
+			clearBeforeTransition();
 			setShowLikuOS(true);
 			setActiveGame('liku_os');
 		} else if (id === 'games_menu') {
+			clearBeforeTransition();
 			setActiveGame('games_menu');
 			setSelectedGameMenuIndex(0);
 		} else if (id === 'back') {
+			clearBeforeTransition();
 			setActiveGame(null);
 			setShowLikuOS(false);
 		} else if (id === 'snake') {
@@ -165,6 +181,7 @@ const GameHub: React.FC<GameHubProps> = ({ ai = false, actionQueue, setActionQue
 				setTimeout(() => setMessage(null), 3000);
 				return;
 			}
+			clearBeforeTransition();
 			setActiveGame('snake');
 		} else if (id === 'tictactoe') {
 			if (stats.energy < 5) {
@@ -172,6 +189,7 @@ const GameHub: React.FC<GameHubProps> = ({ ai = false, actionQueue, setActionQue
 				setTimeout(() => setMessage(null), 3000);
 				return;
 			}
+			clearBeforeTransition();
 			setActiveGame('tictactoe');
 		} else if (id === 'dinorun') {
 			if (stats.energy < 10) {
@@ -179,6 +197,7 @@ const GameHub: React.FC<GameHubProps> = ({ ai = false, actionQueue, setActionQue
 				setTimeout(() => setMessage(null), 3000);
 				return;
 			}
+			clearBeforeTransition();
 			setActiveGame('dinorun');
 		} else if (id === 'hangman') {
 			if (stats.energy < 5) {
@@ -186,6 +205,7 @@ const GameHub: React.FC<GameHubProps> = ({ ai = false, actionQueue, setActionQue
 				setTimeout(() => setMessage(null), 3000);
 				return;
 			}
+			clearBeforeTransition();
 			setActiveGame('hangman');
 		} else if (id === 'sudoku') {
 			if (stats.energy < 5) {
@@ -193,6 +213,7 @@ const GameHub: React.FC<GameHubProps> = ({ ai = false, actionQueue, setActionQue
 				setTimeout(() => setMessage(null), 3000);
 				return;
 			}
+			clearBeforeTransition();
 			setActiveGame('sudoku');
 		} else if (id === 'feed') {
 			if (stats.xp < 10) {
@@ -248,7 +269,10 @@ const GameHub: React.FC<GameHubProps> = ({ ai = false, actionQueue, setActionQue
 		if (key.upArrow) performAction('up');
 		if (key.downArrow) performAction('down');
 		if (key.return) performAction('enter');
-		if (key.escape && activeGame === 'games_menu') setActiveGame(null);
+		if (key.escape && activeGame === 'games_menu') {
+			clearScreen();
+			setActiveGame(null);
+		}
 	}, { isActive: !ai });
 
 	// Process the action queue one by one
@@ -260,41 +284,47 @@ const GameHub: React.FC<GameHubProps> = ({ ai = false, actionQueue, setActionQue
 		}
 	}, [actionQueue]);
 
+	// Helper for game exit that clears screen
+	const handleGameExit = (returnTo: string | null) => {
+		clearScreen();
+		setActiveGame(returnTo);
+	};
 
 	if (activeGame === 'snake') {
-		return <Snake onExit={() => setActiveGame('games_menu')} difficulty={settings?.snakeDifficulty} />;
+		return <Snake onExit={() => handleGameExit('games_menu')} difficulty={settings?.snakeDifficulty} />;
 	}
 
 	if (activeGame === 'tictactoe') {
-		return <TicTacToe onExit={() => setActiveGame('games_menu')} difficulty={settings?.snakeDifficulty} />;
+		return <TicTacToe onExit={() => handleGameExit('games_menu')} difficulty={settings?.snakeDifficulty} />;
 	}
 
 	if (activeGame === 'dinorun') {
-		return <DinoRun onExit={() => setActiveGame('games_menu')} difficulty={settings?.snakeDifficulty} />;
+		return <DinoRun onExit={() => handleGameExit('games_menu')} difficulty={settings?.snakeDifficulty} />;
 	}
 
 	if (activeGame === 'hangman') {
-		return <Hangman onExit={() => setActiveGame('games_menu')} />;
+		return <Hangman onExit={() => handleGameExit('games_menu')} />;
 	}
 
 	if (activeGame === 'sudoku') {
 		const sudokuDifficulty = settings?.snakeDifficulty === 'ai' ? 'medium' : settings?.snakeDifficulty;
-		return <Sudoku onExit={() => setActiveGame('games_menu')} difficulty={sudokuDifficulty} />;
+		return <Sudoku onExit={() => handleGameExit('games_menu')} difficulty={sudokuDifficulty} />;
 	}
 
 	if (activeGame === 'settings') {
-		return <SettingsMenu onExit={() => setActiveGame(null)} onSettingsChanged={refreshData} />;
+		return <SettingsMenu onExit={() => handleGameExit(null)} onSettingsChanged={refreshData} />;
 	}
 
 	if (activeGame === 'builder') {
-		return <BuilderUI onExit={() => { setActiveGame(null); refreshData(); }} />;
+		return <BuilderUI onExit={() => { handleGameExit(null); refreshData(); }} />;
 	}
 
 	if (activeGame === 'community') {
 		return (
 			<CommunityGamesMenu
-				onExit={() => setActiveGame(null)}
+				onExit={() => handleGameExit(null)}
 				onSelectGame={(gameId, loadedGame) => {
+					clearScreen();
 					setLoadedCommunityGame(loadedGame);
 					setActiveGame('community_game_playing');
 				}}
@@ -309,6 +339,7 @@ const GameHub: React.FC<GameHubProps> = ({ ai = false, actionQueue, setActionQue
 			<Box flexDirection="column">
 				<CommunityGame
 					onExit={() => {
+						clearScreen();
 						setActiveGame('community');
 						setLoadedCommunityGame(null);
 						refreshData();
@@ -355,7 +386,7 @@ const GameHub: React.FC<GameHubProps> = ({ ai = false, actionQueue, setActionQue
 
 	if (miniDashboardMode && !activeGame) {
 		return (
-			<Box flexDirection="column" width={maxWidth}>
+			<Box flexDirection="column" width={terminalWidth}>
 				<LikuOS mode="CLI" />
 				<Box>
 					<Text dimColor>Press 'm' to show full menu</Text>
@@ -365,10 +396,10 @@ const GameHub: React.FC<GameHubProps> = ({ ai = false, actionQueue, setActionQue
 	}
 
 	return (
-		<Box flexDirection="column" padding={1} borderStyle="round" borderColor={getBorderColor()} width={maxWidth}>
+		<Box flexDirection="column" padding={1} borderStyle="round" borderColor={getBorderColor()} width={terminalWidth}>
 			<Box marginBottom={1} flexDirection="column" alignItems="center">
 				<Text bold color={getTitleColor()}>🎮 LikuBuddy Game Hub 🎮</Text>
-				<Text>Your AI Companion & Generative Game Platform</Text>
+				<Text>Your AI Companion &amp; Generative Game Platform</Text>
 			</Box>
 
 			<Box flexDirection="column" marginBottom={1}>
@@ -377,7 +408,7 @@ const GameHub: React.FC<GameHubProps> = ({ ai = false, actionQueue, setActionQue
 						<Box flexDirection="row" justifyContent="space-between">
 							<Text>Level: <Text bold color="cyan">{stats.level}</Text></Text>
 							<Text>XP: <Text bold color="yellow">{stats.xp}</Text></Text>
-							<Text>💎 Tokens: <Text bold color="green">{proTokens.balance}</Text></Text>
+							<Text>Tokens: <Text bold color="green">{proTokens.balance}</Text></Text>
 						</Box>
 						<Box flexDirection="row" justifyContent="space-between">
 							<Text>Hunger: <Text color={stats.hunger < 70 ? 'green' : 'yellow'}>{stats.hunger}%</Text></Text>
