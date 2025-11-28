@@ -5,7 +5,8 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import { dirname } from 'path';
 import { build } from 'esbuild';
 import os from 'os';
-import React, { ComponentType } from 'react';
+import React, { ComponentType, Suspense, Component, ReactNode } from 'react';
+import { Text, Box } from 'ink';
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -26,6 +27,60 @@ export interface GameInstallResult {
   message: string;
   error?: string;
 }
+
+// ============================================================
+// Error Boundary - Prevents broken AI games from crashing app
+// ============================================================
+interface ErrorBoundaryProps {
+  gameName: string;
+  children?: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class GameErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error(`Game "${this.props.gameName}" crashed:`, error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return React.createElement(Box, { flexDirection: 'column', padding: 1 },
+        React.createElement(Text, { color: 'red', bold: true }, 
+          `💥 Game "${this.props.gameName}" crashed!`
+        ),
+        React.createElement(Text, { color: 'yellow' }, 
+          this.state.error?.message || 'Unknown error'
+        ),
+        React.createElement(Box, { marginTop: 1 },
+          React.createElement(Text, { dimColor: true }, 
+            'Press ESC to return to menu'
+          )
+        )
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// Loading fallback component
+const LoadingFallback: React.FC<{ name: string }> = ({ name }) => {
+  return React.createElement(Box, { padding: 1 },
+    React.createElement(Text, { color: 'yellow' }, `⏳ Loading ${name}...`)
+  );
+};
 
 export class GameLoader {
   private gamesDir: string;
@@ -125,6 +180,7 @@ export class GameLoader {
    * Load a game dynamically by ID
    * Uses direct ESM import with file:// URL for Windows compatibility
    * Games are bundled with react/ink as externals, so they share the parent's instances
+   * Wrapped with ErrorBoundary + Suspense for resilience
    */
   async loadGame(gameId: string): Promise<LoadedGame> {
     // Return cached game if available
@@ -155,15 +211,23 @@ export class GameLoader {
       const gameModule = await import(gameUrl);
       const GameComponent = gameModule.default || gameModule;
 
-      // Wrap component with error boundary and safe props handling
+      // Wrap component with ErrorBoundary + Suspense + safe props handling
       const WrappedComponent: ComponentType<{ onExit: () => void; difficulty?: string }> = (props) => {
         const safeProps = props || {};
         const safeOnExit = safeProps.onExit || (() => {});
         
-        return React.createElement(GameComponent, {
-          ...safeProps,
-          onExit: safeOnExit,
-        });
+        return React.createElement(
+          GameErrorBoundary,
+          { gameName: game.name },
+          React.createElement(
+            Suspense,
+            { fallback: React.createElement(LoadingFallback, { name: game.name }) },
+            React.createElement(GameComponent, {
+              ...safeProps,
+              onExit: safeOnExit,
+            })
+          )
+        );
       };
 
       const loaded: LoadedGame = {

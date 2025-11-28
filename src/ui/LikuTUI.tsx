@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Text, useInput, useApp } from 'ink';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Box, Text, useInput, useApp, useStdout } from 'ink';
 import fs from 'node:fs';
 import path from 'node:path';
 import Snake from './games/Snake.js';
@@ -344,9 +344,18 @@ const GameHub: React.FC<GameHubProps> = ({ ai = false, actionQueue, setActionQue
 	const currentMenuItems = isGameMenu ? gameMenuItems : mainMenuItems;
 	const currentSelection = isGameMenu ? selectedGameMenuIndex : selectedGame;
 
+	// Get terminal dimensions for responsive layout
+	const { stdout } = useStdout();
+	const terminalWidth = useMemo(() => {
+		return stdout?.columns || 120;
+	}, [stdout?.columns]);
+	
+	// Clamp width to prevent overflow (Gemini CLI pattern)
+	const maxWidth = Math.min(terminalWidth - 2, 130);
+
 	if (miniDashboardMode && !activeGame) {
 		return (
-			<Box flexDirection="column">
+			<Box flexDirection="column" width={maxWidth}>
 				<LikuOS mode="CLI" />
 				<Box>
 					<Text dimColor>Press 'm' to show full menu</Text>
@@ -356,7 +365,7 @@ const GameHub: React.FC<GameHubProps> = ({ ai = false, actionQueue, setActionQue
 	}
 
 	return (
-		<Box flexDirection="column" padding={1} borderStyle="round" borderColor={getBorderColor()}>
+		<Box flexDirection="column" padding={1} borderStyle="round" borderColor={getBorderColor()} width={maxWidth}>
 			<Box marginBottom={1} flexDirection="column" alignItems="center">
 				<Text bold color={getTitleColor()}>🎮 LikuBuddy Game Hub 🎮</Text>
 				<Text>Your AI Companion & Generative Game Platform</Text>
