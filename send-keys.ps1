@@ -7,36 +7,34 @@ param (
 )
 
 $wshell = New-Object -ComObject WScript.Shell
+$success = $false
 
-# Window title set by LikuBuddy (see src/index.tsx)
-$targetTitle = "LikuBuddy Game Hub"
+# The game runs as a node child process inside a terminal
+# Window title format: "LikuBuddy Game Hub [PID]" for unique targeting
 
-# Strategy 1: Activate by exact Window Title
-$success = $wshell.AppActivate($targetTitle)
+if ($Id -and $Id -gt 0) {
+    # Try PID-specific title first (most precise)
+    $pidTitle = "LikuBuddy Game Hub [$Id]"
+    $success = $wshell.AppActivate($pidTitle)
+}
 
-# Strategy 2: If that fails, try partial match "LikuBuddy"
 if (-not $success) {
+    # Fallback to generic title (may hit wrong window if multiple exist)
+    $success = $wshell.AppActivate("LikuBuddy Game Hub")
+}
+
+if (-not $success) {
+    # Last resort - partial match
     $success = $wshell.AppActivate("LikuBuddy")
 }
 
-# Strategy 3: If that fails, and we have a PID, try PID
-if (-not $success -and $Id) {
-    $success = $wshell.AppActivate($Id)
-}
-
-# Strategy 4: Fallback to generic titles
 if (-not $success) {
-    if ($wshell.AppActivate("Liku")) { $success = $true }
-    elseif ($wshell.AppActivate("node")) { $success = $true }
-}
-
-if (-not $success) {
-    Write-Error "Could not activate game window. Ensure 'LikuBuddy Game Window' is running."
+    Write-Error "Could not activate game window. Ensure LikuBuddy is running."
     exit 1
 }
 
 # Small delay to ensure focus settles
-Start-Sleep -Milliseconds 100
+Start-Sleep -Milliseconds 50
 
 # Send the keys
 try {

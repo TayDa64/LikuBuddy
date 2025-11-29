@@ -92,8 +92,8 @@ const initFullscreen = () => {
   process.stdout.write(ANSI.CLEAR_SCREEN + ANSI.CURSOR_HOME);
   // Reset scroll region
   process.stdout.write(ANSI.SCROLL_REGION_FULL);
-  // Set title
-  process.stdout.write(ANSI.SET_TITLE('LikuBuddy Game Hub'));
+  // Set title with PID for unique window targeting (important for AutoPlayer)
+  process.stdout.write(ANSI.SET_TITLE(`LikuBuddy Game Hub [${process.pid}]`));
 };
 
 const exitFullscreen = () => {
