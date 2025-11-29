@@ -8,33 +8,43 @@ param (
 
 $wshell = New-Object -ComObject WScript.Shell
 $success = $false
+$maxRetries = 3
 
 # The game runs as a node child process inside a terminal
 # Window title format: "LikuBuddy Game Hub [PID]" for unique targeting
 
-if ($Id -and $Id -gt 0) {
-    # Try PID-specific title first (most precise)
-    $pidTitle = "LikuBuddy Game Hub [$Id]"
-    $success = $wshell.AppActivate($pidTitle)
+for ($retry = 0; $retry -lt $maxRetries; $retry++) {
+    if ($Id -and $Id -gt 0) {
+        # Try PID-specific title first (most precise)
+        $pidTitle = "LikuBuddy Game Hub [$Id]"
+        $success = $wshell.AppActivate($pidTitle)
+    }
+
+    if (-not $success) {
+        # Fallback to generic title (may hit wrong window if multiple exist)
+        $success = $wshell.AppActivate("LikuBuddy Game Hub")
+    }
+
+    if (-not $success) {
+        # Last resort - partial match
+        $success = $wshell.AppActivate("LikuBuddy")
+    }
+
+    if ($success) {
+        break
+    }
+    
+    Start-Sleep -Milliseconds 20
 }
 
 if (-not $success) {
-    # Fallback to generic title (may hit wrong window if multiple exist)
-    $success = $wshell.AppActivate("LikuBuddy Game Hub")
-}
-
-if (-not $success) {
-    # Last resort - partial match
-    $success = $wshell.AppActivate("LikuBuddy")
-}
-
-if (-not $success) {
-    Write-Error "Could not activate game window. Ensure LikuBuddy is running."
+    Write-Error "Could not activate game window after $maxRetries attempts."
     exit 1
 }
 
-# Small delay to ensure focus settles
-Start-Sleep -Milliseconds 50
+# Longer delay to ensure focus fully settles before sending keys
+# This prevents keys from going to wrong window during focus transition
+Start-Sleep -Milliseconds 80
 
 # Send the keys
 try {
